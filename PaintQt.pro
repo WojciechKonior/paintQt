@@ -17,8 +17,8 @@ HEADERS += \
     paintqt.h \
     scribblearea.h
 
-FORMS += \
-    paintqt.ui
+#FORMS += \
+#    paintqt.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

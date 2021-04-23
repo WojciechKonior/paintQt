@@ -174,17 +174,78 @@ void PaintQt::createActions()
 // Create the menubar
 void PaintQt::createMenus()
 {
+    // Create Save As option and the list of file types
+    saveAsMenu = new QMenu(tr("&Save As"), this);
+    foreach(QAction *action, saveAsActs)
+        saveAsMenu->addAction(action);
 
+    // Attach all actions to file
+    fileMenu = new QMenu(tr("&File"), this);
+    fileMenu->addAction(openAct);
+    fileMenu->addMenu(saveAsMenu);
+    fileMenu->addAction(printAct);
+    fileMenu->addSeparator();
+    fileMenu->addAction(exitAct);
+
+    // Attach all actions to Options
+    optionMenu = new QMenu(tr("&Options"), this);
+    optionMenu->addAction(penColorAct);
+    optionMenu->addAction(penWidthAct);
+    optionMenu->addSeparator();
+    optionMenu->addAction(clearScreenAct);
+
+    // Attach all actions to Help
+    helpMenu = new QMenu(tr("&Help"), this);
+    helpMenu->addAction(aboutAct);
+    helpMenu->addAction(aboutQtAct);
+
+    // Add menu items to the menubar
+    menuBar()->addMenu(fileMenu);
+    menuBar()->addMenu(optionMenu);
+    menuBar()->addMenu(helpMenu);
 }
 
 bool PaintQt::maybeSave()
 {
+    // Check for changes since last save
+    if(scribbleArea->isModified()){
+        QMessageBox::StandardButton ret;
+
+        // Sribble is the title and text and the buttons
+        ret = QMessageBox::warning(this, tr("Scribble"),
+              tr("The image has been modified.\nDo you want to save your changes?"),
+              QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel);
+
+        // If save button clicked call for file to be saved
+        if(ret == QMessageBox::Save){
+            return saveFile("png");
+        // If cancel do nothing
+        } else if (ret == QMessageBox::Cancel){
+            return false;
+        }
+    }
     return true;
 }
 
-bool PaintQt::saveFile(const QByteArray &fileformat)
+bool PaintQt::saveFile(const QByteArray &fileFormat)
 {
-    return true;
+    // Define path, name and default file type
+    QString initialPath = QDir::currentPath() + "/untitled." + fileFormat;
+
+    // Get selected file from dialog
+    // Add the proper file formats and extensions
+    QString fileName = QFileDialog::getSaveFileName(this, tr("Save As"),
+                       initialPath, tr("%1 Files (*.%2);;All Files (*)")
+                       .arg(QString::fromLatin1(fileFormat.toUpper()))
+                       .arg(QString::fromLatin1(fileFormat)));
+
+    // If no file do nothing
+    if(fileName.isEmpty()) {
+        return false;
+    } else {
+        // Call for the file to be saved
+        return scribbleArea->saveImage(fileName, fileFormat.constData());
+    }
 }
 
 //PaintQt::~PaintQt()
