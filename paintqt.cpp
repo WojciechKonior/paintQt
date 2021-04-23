@@ -1,15 +1,194 @@
+#include <QtWidgets>
 #include "paintqt.h"
 #include "ui_paintqt.h"
+#include "scribblearea.h"
 
-PaintQt::PaintQt(QWidget *parent)
-    : QMainWindow(parent)
-    , ui(new Ui::PaintQt)
+//PaintQt::PaintQt(QWidget *parent)
+//    : QMainWindow(parent)
+//    , ui(new Ui::PaintQt)
+//{
+//    ui->setupUi(this);
+PaintQt::PaintQt()
 {
-    ui->setupUi(this);
+    // Create the ScribbleArea widget and make it the central widet
+    scribbleArea = new ScribbleArea;
+    setCentralWidget(scribbleArea);
+
+    // Create actions and menus
+    createActions();
+    createMenus();
+
+    // Set the title
+    setWindowTitle(tr("Scribble"));
+
+    // Size the app
+    resize(500, 500);
 }
 
-PaintQt::~PaintQt()
+// User tried to close the app
+void PaintQt::closeEvent(QCloseEvent *event)
 {
-    delete ui;
+    // If they try to close maybeSave() return true
+    // if no changes have been made and the app closes
+    if (maybeSave()){
+        event->accept();
+    } else {
+        // If there have been changes ignore the event
+        event->ignore();
+    }
 }
+
+// Check if the current image has been changed
+// and then open a dialog to open a file
+void PaintQt::open()
+{
+    // Check if changes have been made since last save
+    // mybeSave() return true if no changes have been made
+    if (maybeSave()){
+        // Get the file to open from a dialog
+        // tr sets the window title to Open file
+        // QDir opens the current direcotry
+        QString fileName = QFileDialog::getOpenFileName(this, tr("Open File"), QDir::currentPath());
+
+        // If we have a file name load the image and place
+        // it in the scribbleArea
+        if(!fileName.isEmpty())
+            scribbleArea->openImage(fileName);
+    }
+}
+
+// Called when the user clicks Save As in the menu
+void PaintQt::save()
+{
+    // A QAction represents the action of the user clicking
+    QAction *action = qobject_cast<QAction *>(sender());
+
+    // Stores the array of bytes of the users data
+    QByteArray fileFormat = action->data().toByteArray();
+
+    // Pass it to be saved
+    saveFile(fileFormat);
+}
+
+// Opens a dialog to change the pen color
+void PaintQt::penColor()
+{
+    // Store the chosen color from the dialog
+    QColor newColor = QColorDialog::getColor(scribbleArea->penColor());
+
+    // If a valid color set it
+    if (newColor.isValid())
+        scribbleArea->setPenColor(newColor);
+}
+
+// Opens a dialog that allows the user to change the pen width
+void PaintQt::penWidth()
+{
+    // Stores button value
+    bool ok;
+
+    // tr("SCribble") is the title
+    // the next tr is the text to display
+    // Get the current pen width
+    // Define the min, max, step and ok button
+    int newWidth = QInputDialog::getInt(this,
+                                        tr("Scribble"),
+                                        tr("Select pen width:"),
+                                        scribbleArea->penWidth(),
+                                        1, 50, 1, &ok);
+
+    // Change the pen width
+    if (ok)
+        scribbleArea->setPenWidth(newWidth);
+}
+
+// Open an about dialog
+void PaintQt::about()
+{
+    // Window title and text to display
+    QMessageBox::about(this, tr("About Scribble"),
+                       tr("<p>The <b>Scribble</b> example is awesome</p>"));
+}
+
+// Define menu actions that call function
+void PaintQt::createActions()
+{
+    // Create the action tied to the menu
+    openAct = new QAction(tr("&Open..."), this);
+
+    // Define the associated shortcut key
+    openAct->setShortcuts(QKeySequence::Open);
+
+    // Tie the action to PaintQt::open()
+    connect(openAct, SIGNAL(triggered()), this, SLOT(open()));
+
+    // Get a list of the supported file formats
+    // QImgaeWriter is used to write images to files
+    foreach(QByteArray format, QImageWriter::supportedImageFormats()){
+        QString text = tr("%!...").arg(QString(format).toUpper());
+
+        // Create an action for each file format
+        QAction *action = new QAction(text, this);
+
+        // Set an action for each file format
+        action->setData(format);
+
+        // When clicked call PaintQt::save()
+        connect(action, SIGNAL(triggered()), this, SLOT(save()));
+
+        // Attach each file format option mentu item to Save As
+        saveAsActs.append(action);
+    }
+
+    // Create print action and tie to PaintQt::print()
+    printAct = new QAction(tr("&Print..."), this);
+    connect(printAct, SIGNAL(triggered()), scribbleArea, SLOT(print()));
+
+    // Create exit action and tie to PaintQt::close()
+    exitAct = new QAction(tr("&Exit..."), this);
+    exitAct->setShortcuts(QKeySequence::Quit);
+    connect(exitAct, SIGNAL(triggered()), this, SLOT(close()));
+
+    // Create pen color action and tie to PaintQt::penColor()
+    penColorAct = new QAction(tr("&Pen Color..."), this);
+    connect(penColorAct, SIGNAL(triggered()), this, SLOT(penColor()));
+
+    // Create pend width action and tie to PaintQt::penWidth()
+    penWidthAct = new QAction(tr("&Pen Width..."), this);
+    connect(penWidthAct, SIGNAL(triggered()), this, SLOT(penWidth()));
+
+    // Create clear screen action and tie to PainQt::clearImage()
+    clearScreenAct = new QAction(tr("&Clear Screen"), this);
+    clearScreenAct->setShortcut(tr("Ctrl+L"));
+    connect(clearScreenAct, SIGNAL(triggered()), scribbleArea, SLOT(clearImage()));
+
+    // Create about action and tie to PaintQt::about()
+    aboutAct = new QAction(tr("&About"), this);
+    connect(aboutAct, SIGNAL(triggered()), this, SLOT(about()));
+
+    // Create about Qt action and tie to PaintQt::aboutQt()
+    aboutQtAct = new QAction(tr("About &Qt"), this);
+    connect(aboutQtAct, SIGNAL(triggered()), qApp, SLOT(aboutQt()));
+}
+
+// Create the menubar
+void PaintQt::createMenus()
+{
+
+}
+
+bool PaintQt::maybeSave()
+{
+    return true;
+}
+
+bool PaintQt::saveFile(const QByteArray &fileformat)
+{
+    return true;
+}
+
+//PaintQt::~PaintQt()
+//{
+//    delete ui;
+//}
 
